@@ -42,11 +42,6 @@ class Game
         @minimap.draw @player
 
 class Map
-
-    ###
-    Initializes the Map class.
-    @mapData Array of Array of integer
-    ###
     constructor: (@mapData) ->
         @w = @mapData[0].length
         @h = @mapData.length
