@@ -41,6 +41,9 @@ class Game
         @player.move @map
         @minimap.draw @player
 
+    run: =>
+        window.setInterval (=> @update()), 1000 / 60
+
 class Map
     constructor: (@mapData) ->
         @w = @mapData[0].length
@@ -119,5 +122,4 @@ map = new Map [
 minimap = new MiniMap (document.querySelector "#minimap"), map, 8
 player = new Player()
 game = new Game map, minimap, player
-
-window.setInterval game.update.bind(game), 1000 / 60
+game.run()
