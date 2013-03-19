@@ -11,7 +11,9 @@ class Player
 
     move: (map) ->
         step = @speed * Player.MOVE_SPEED
-        @rot += @dir * Player.ROT_SPEED
+        @rot += @dir * Player.ROT_SPEED % Math.PI * 2
+        if @rot < 0
+            @rot = Math.PI * 2 - @rot
         newX = @x + (Math.cos @rot) * step
         newY = @y + (Math.sin @rot) * step
         unless @isBlocked map, newX, newY
