@@ -56,10 +56,10 @@ class RayCastingRenderer #extends Renderer
         distToProj = @cameraDistanceToProjection()
         for i in [0...@w]
             slice = @closestIntersect game.map, game.player, rayRad
-            projectedHeight = @gridSize / slice.dist * distToProj
+            projectedHeight = 1 / slice.dist * distToProj
             top = (@h - projectedHeight) / 2
 
-            c = 255 - Math.floor slice.dist / 1000 * 200
+            c = 255 - Math.floor slice.dist  * 200
             if c < 20 then c = 20
             ctx2d.fillStyle = "rgb(#{c},#{c},#{c})"
             ctx2d.fillRect i, top, 1, projectedHeight
@@ -75,34 +75,34 @@ class RayCastingRenderer #extends Renderer
             x: horz.x,
             y: horz.y,
             dist: (Math.cos player.rot - rayRad) * hDist,
-            ofs: horz.x % @gridSize
+            ofs: (Math.floor horz.x * @gridSize) % @gridSize
         else
             x: vert.x,
             y: vert.y,
             dist: (Math.cos player.rot - rayRad) * vDist,
-            ofs: vert.y % @gridSize
+            ofs: (Math.floor vert.y * @gridSize) % @gridSize
 
     findHorzIntersect: (map, player, rayRad) ->
         up = @isRayFacingUp rayRad
-        y = (@toUnit player.y) + if up then -1 else @gridSize
-        x = (@toUnit player.x) + ((@toUnit player.y) - y) / Math.tan @fovRad
-        yStep = if up then -@gridSize else @gridSize
-        xStep = @gridSize / Math.tan rayRad
-        while (map.getWall (@toMap x), (@toMap y)) == 0
+        y = player.y + if up then -1 else 0
+        x = player.x + (player.y - y) / Math.tan @fovRad
+        yStep = if up then -1 else 1
+        xStep = 1 / Math.tan rayRad
+        while 0 <= x < map.w and 0 <= y < map.h and (wall = map.getWall (Math.floor x), (Math.floor y)) == 0
             x += xStep
             y += yStep
-        x: x, y: y
+        x: x, y: y, wall: wall
 
     findVertIntersect: (map, player, rayRad) ->
         right = @isRayFacingRight rayRad
-        x = (@toUnit player.x) + if right then @gridSize else -1
-        y = (@toUnit player.y) + ((@toUnit player.x) - x) / Math.tan @fovRad
-        xStep = if right then @gridSize else -@gridSize
-        yStep = @gridSize * Math.tan rayRad
-        while (map.getWall (@toMap x), (@toMap y)) == 0
+        x = player.x + if right then 0 else -1
+        y = player.y + (player.x - x) / Math.tan @fovRad
+        xStep = if right then 1 else -1
+        yStep = Math.tan rayRad
+        while 0 <= x < map.w and 0 <= y < map.h and (wall = map.getWall (Math.floor x), (Math.floor y)) == 0
             x += xStep
             y += yStep
-        x: x, y: y
+        x: x, y: y, wall: wall
 
     square: (n) ->
         n * n
@@ -149,11 +149,7 @@ class Map
         @h = @mapData.length
 
     getWall: (x, y) ->
-        if 0 <= x < @w and 0 <= y < @h
-            @mapData[y][x]
-        else
-            #debugger;
-            1
+        @mapData[y][x]
 
 class MiniMap
     constructor: (@minimap, @map, @scale) ->
