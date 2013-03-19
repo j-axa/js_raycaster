@@ -1,6 +1,6 @@
 class Player
     @MOVE_SPEED = 0.1
-    @ROT_SPEED = 6 * Math.PI / 180
+    @ROT_SPEED = 3 * Math.PI / 180
 
     constructor: ->
         @x = 1.0
