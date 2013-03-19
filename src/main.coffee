@@ -56,7 +56,7 @@ class RayCastingRenderer #extends Renderer
         for i in [0...@w]
             rayPos = -@w / 2 + i
             rayDist = Math.sqrt (@square rayPos) + (@square @distanceToProjection)
-            rayRad = player.rot + Math.asin rayPos / rayDist
+            rayRad = game.player.rot + Math.asin rayPos / rayDist
 
             slice = @closestIntersect game.map, game.player, rayRad
             game.minimap.drawRay game.player, slice
