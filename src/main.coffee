@@ -67,6 +67,8 @@ class RayCastingRenderer
 
             texture = @textures[slice.wall - 1]
             ctx2d.drawImage texture, slice.ofs, 0, 1, 64, i, top, 1, projectedHeight
+        gun = @textures[5]
+        ctx2d.drawImage gun, (@w - gun.width) / 2, @h - gun.height
         null
 
     closestIntersect: (map, player, rayRad) ->
@@ -243,7 +245,7 @@ map = new Map [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ]
 
-wallTextures = ["brick.png", "brick_hole.png", "brick_missing.png", "brick_green.png", "sky.jpg"]
+wallTextures = ["brick.png", "brick_hole.png", "brick_missing.png", "brick_green.png", "sky.jpg", "gun.png"]
 imagecount = wallTextures.length
 textures = []
 for texture in wallTextures
