@@ -35,7 +35,7 @@ class RayCastingRenderer
     @TWO_PI_34 = @TWO_PI * 0.75
     @TWO_PI_14 = @TWO_PI * 0.25
 
-    constructor: (@screen, @w, @h) ->
+    constructor: (@screen, @w, @h, @textures) ->
         @screen.width = @w
         @screen.height = @h
         @screen.style.width = "#{@w}px"
@@ -53,6 +53,8 @@ class RayCastingRenderer
         ctx2d.fillStyle = "rgb(0,0,0)"
         ctx2d.fillRect 0, 0, @w, @h
 
+        ctx2d.drawImage @textures[4], 0, 0, 3840, 1200, 0, 0, @w, @h / 2
+
         for i in [0...@w]
             rayPos = -@w / 2 + i
             rayDist = Math.sqrt (@square rayPos) + (@square @distanceToProjection)
@@ -63,11 +65,8 @@ class RayCastingRenderer
             projectedHeight = 1 / slice.dist * @distanceToProjection
             top = (@h - projectedHeight) / 2
 
-            #c = 255 - Math.floor slice.dist  * 200
-            #if c < 20 then c = 20
-            #ctx2d.fillStyle = "rgb(#{c},#{c},#{c})"
-            #ctx2d.fillRect i, top, 1, projectedHeight
-            ctx2d.drawImage image, slice.ofs, 0, 1, 64, i, top, 1, projectedHeight
+            texture = @textures[slice.wall - 1]
+            ctx2d.drawImage texture, slice.ofs, 0, 1, 64, i, top, 1, projectedHeight
         null
 
     closestIntersect: (map, player, rayRad) ->
@@ -80,12 +79,14 @@ class RayCastingRenderer
             x: horz.x,
             y: horz.y,
             dist: (Math.cos player.rot - rayRad) * hDist,
-            ofs: (Math.floor horz.x * @gridSize) % @gridSize
+            ofs: (Math.floor horz.x * @gridSize) % @gridSize,
+            wall: horz.wall
         else
             x: vert.x,
             y: vert.y,
             dist: (Math.cos player.rot - rayRad) * vDist,
-            ofs: (Math.floor vert.y * @gridSize) % @gridSize
+            ofs: (Math.floor vert.y * @gridSize) % @gridSize,
+            wall: vert.wall
 
     findHorzIntersect: (map, player, rayRad) ->
         slope = (Math.cos rayRad) / (Math.sin rayRad)
@@ -241,12 +242,22 @@ map = new Map [
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ]
-#wallTextures = ["/brick.jpg"]
-image = new Image()
-image.onload = ->
-    renderer = new RayCastingRenderer (document.querySelector "#screen"), 640, 480
+
+wallTextures = ["brick.png", "brick_hole.png", "brick_missing.png", "brick_green.png", "sky.jpg"]
+imagecount = wallTextures.length
+textures = []
+for texture in wallTextures
+    image = new Image()
+    image.onload = ->
+        --imagecount
+        if imagecount == 0
+            start()
+    image.src = "file://C:/Users/josaxa/SkyDrive/dev/js_raycaster/src/#{texture}"
+    textures.push image
+
+start = ->
+    renderer = new RayCastingRenderer (document.querySelector "#screen"), 640, 480, textures
     minimap = new MiniMap (document.querySelector "#minimap"), map, 8
     player = new Player()
     game = new Game map, renderer, minimap, player
     game.run()
-image.src = "file://C:/Users/josaxa/SkyDrive/dev/js_raycaster/src/brick.png"
