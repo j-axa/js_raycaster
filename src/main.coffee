@@ -28,8 +28,100 @@ class Player
             when 37 then @dir   = -1 * active
             when 39 then @dir   =  1 * active
 
+class RayCastingRenderer #extends Renderer
+    constructor: (@screen, @w, @h) ->
+        @screen.width = @w
+        @screen.height = @h
+        @screen.style.width = "#{@w}px"
+        @screen.style.height = "#{@h}px"
+
+        @gridSize = 64
+        @fovDeg = 60
+        @cameraHeight = 48
+
+    render: (game) ->
+        ctx2d = @screen.getContext "2d"
+        ctx2d.fillStyle = "rgb(0,0,0)"
+        ctx2d.fillRect 0, 0, @w, @h
+        step = @fovDeg / @w
+        start = (@toDeg game.player.rot) - @fovDeg / 2
+        for i in [0...@w]
+            slice = @closestIntersect game.map, game.player, start
+            projectedHeight = @gridSize / slice.dist * 255#@cameraDistanceToProjection()
+            top = (@h - projectedHeight) / 2
+
+            c = 255 - Math.floor slice.dist / 1000 * 200
+            if c < 20 then c = 20
+            ctx2d.fillStyle = "rgb(#{c},#{c},#{c})"
+            ctx2d.fillRect i, top, 1, projectedHeight
+            start += step
+
+    closestIntersect: (map, player, rayDeg) ->
+        horz = @findHorzIntersect map, player, rayDeg
+        vert = @findVertIntersect map, player, rayDeg
+        hDist = Math.sqrt (@square player.x - horz.x) + (@square player.y - horz.y)
+        vDist = Math.sqrt (@square player.x - vert.x) + (@square player.y - vert.y)
+        if hDist < vDist
+            x: horz.x,
+            y: horz.y,
+            dist: (Math.cos player.rot - @toRad rayDeg) * hDist,
+            ofs: x % @gridSize
+        else
+            x: vert.x,
+            y: vert.y,
+            dist: (Math.cos player.rot - @toRad rayDeg) * vDist,
+            ofs: y % @gridSize
+
+    findHorzIntersect: (map, player, rayDeg) ->
+        up = @isRayFacingUp rayDeg
+        y = (@toUnit player.y) + if up then -1 else @gridSize
+        x = (@toUnit player.x) + ((@toUnit player.y) - y) / Math.tan @toRad @fovDeg
+        yStep = if up then -@gridSize else @gridSize
+        xStep = @gridSize / Math.tan @toRad rayDeg
+        while (map.getWall (@toMap x), (@toMap y)) == 0
+            x += xStep
+            y += yStep
+        x: x, y: y
+
+    findVertIntersect: (map, player, rayDeg) ->
+        right = @isRayFacingRight rayDeg
+        x = (@toUnit player.x) + if right then @gridSize else -1
+        y = (@toUnit player.y) + ((@toUnit player.x) - x) / Math.tan @toRad @fovDeg
+        xStep = if right then @gridSize else -@gridSize
+        yStep = @gridSize * Math.tan @toRad rayDeg
+        while (map.getWall (@toMap x), (@toMap y)) == 0
+            x += xStep
+            y += yStep
+        x: x, y: y
+
+    square: (n) ->
+        n * n
+
+    cameraDistanceToProjection: ->
+        @w / 2 / (Math.tan (@toRad @fovDeg / 2))
+
+    isRayFacingUp: (rayDeg) ->
+        0 < rayDeg < 180
+
+    isRayFacingRight: (rayDeg) ->
+        90 < rayDeg < 270
+
+    toDeg: (rad) ->
+        deg = (rad * 180 / Math.PI) % 360
+        if deg < 0 then 360 - deg else deg
+
+    toRad: (deg) ->
+        deg * Math.PI / 180
+
+    toUnit: (x) ->
+        (Math.floor x) * @gridSize
+
+    toMap: (x) ->
+        Math.floor x / @gridSize
+
+
 class Game
-    constructor: (@map, @minimap, @player) ->
+    constructor: (@map, @renderer, @minimap, @player) ->
         document.onkeydown = (e) ->
             @player.parseInput e.keyCode
         document.onkeyup = (e) ->
@@ -39,6 +131,7 @@ class Game
 
     update: ->
         @player.move @map
+        @renderer.render @
         @minimap.draw @player
 
     run: =>
@@ -50,7 +143,11 @@ class Map
         @h = @mapData.length
 
     getWall: (x, y) ->
-        return @mapData[y][x]
+        if 0 <= x < @w and 0 <= y < @h
+            @mapData[y][x]
+        else
+            #debugger;
+            1
 
 class MiniMap
     constructor: (@minimap, @map, @scale) ->
@@ -119,7 +216,8 @@ map = new Map [
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ]
+renderer = new RayCastingRenderer (document.querySelector "#screen"), 640, 480
 minimap = new MiniMap (document.querySelector "#minimap"), map, 8
 player = new Player()
-game = new Game map, minimap, player
+game = new Game map, renderer, minimap, player
 game.run()
