@@ -42,6 +42,7 @@ class RayCastingRenderer #extends Renderer
         @gridSize = 64
         @fovRad = @toRad 60
         @cameraHeight = 48
+        @distanceToProjection = (@w / 2) / Math.tan @fovRad / 2
 
     render: (game) ->
         ctx2d = @screen.getContext "2d"
@@ -50,20 +51,20 @@ class RayCastingRenderer #extends Renderer
         ctx2d.fillStyle = "rgb(0,0,0)"
         ctx2d.fillRect 0, 0, @w, @h
 
-        step = @fovRad / @w
-        rayRad = game.player.rot - @fovRad / 2
-
-        distToProj = @cameraDistanceToProjection()
         for i in [0...@w]
+            rayPos = -@w / 2 + i
+            rayDist = Math.sqrt (@square rayPos) + (@square @distanceToProjection)
+            rayRad = player.rot + Math.asin rayPos / rayDist
+
             slice = @closestIntersect game.map, game.player, rayRad
-            projectedHeight = 1 / slice.dist * distToProj
+            game.minimap.drawRay game.player, slice
+            projectedHeight = 1 / slice.dist * @distanceToProjection
             top = (@h - projectedHeight) / 2
 
             c = 255 - Math.floor slice.dist  * 200
             if c < 20 then c = 20
             ctx2d.fillStyle = "rgb(#{c},#{c},#{c})"
             ctx2d.fillRect i, top, 1, projectedHeight
-            rayRad += step
 
     closestIntersect: (map, player, rayRad) ->
         rayRad %= RayCastingRenderer.TWO_PI
@@ -83,32 +84,39 @@ class RayCastingRenderer #extends Renderer
             ofs: (Math.floor vert.y * @gridSize) % @gridSize
 
     findHorzIntersect: (map, player, rayRad) ->
+        slope = (Math.cos rayRad) / (Math.sin rayRad)
         up = @isRayFacingUp rayRad
-        y = player.y + if up then -1 else 0
-        x = player.x + (player.y - y) / Math.tan @fovRad
+        y = (if up then Math.floor else Math.ceil) player.y
+        x = player.x + (y - player.y) * slope
         yStep = if up then -1 else 1
-        xStep = 1 / Math.tan rayRad
-        while 0 <= x < map.w and 0 <= y < map.h and (wall = map.getWall (Math.floor x), (Math.floor y)) == 0
+        xStep = yStep * slope
+        while 0 <= x < map.w and 0 <= y < map.h
+            wallX = Math.floor x
+            wallY = Math.floor y + (if up then -1 else 0)
+            wall = map.getWall wallX, wallY
+            if wall > 0 then break
             x += xStep
             y += yStep
         x: x, y: y, wall: wall
 
     findVertIntersect: (map, player, rayRad) ->
+        slope = (Math.sin rayRad) / (Math.cos rayRad)
         right = @isRayFacingRight rayRad
-        x = player.x + if right then 0 else -1
-        y = player.y + (player.x - x) / Math.tan @fovRad
+        x = (if right then Math.ceil else Math.floor) player.x
+        y = player.y + (x - player.x) * slope
         xStep = if right then 1 else -1
-        yStep = Math.tan rayRad
-        while 0 <= x < map.w and 0 <= y < map.h and (wall = map.getWall (Math.floor x), (Math.floor y)) == 0
+        yStep = xStep * slope
+        while 0 <= x < map.w and 0 <= y < map.h
+            wallX = Math.floor x + if right then 0 else -1
+            wallY = Math.floor y
+            wall = map.getWall wallX, wallY
+            if wall > 0 then break
             x += xStep
             y += yStep
         x: x, y: y, wall: wall
 
     square: (n) ->
         n * n
-
-    cameraDistanceToProjection: ->
-        @w / 2 / (Math.tan @fovRad / 2)
 
     isRayFacingUp: (rayRad) ->
         rayRad < 0 or Math.PI < rayRad
@@ -137,8 +145,9 @@ class Game
 
     update: ->
         @player.move @map
-        @renderer.render @
         @minimap.draw @player
+        @renderer.render @
+
 
     run: =>
         window.setInterval (=> @update()), 1000 / 60
@@ -189,6 +198,15 @@ class MiniMap
         ctx2d.moveTo player.x * @scale, player.y * @scale
         ctx2d.lineTo player.x * @scale + (Math.cos player.rot) * @scale * 2,
                      player.y * @scale + (Math.sin player.rot) * @scale * 2
+        ctx2d.stroke()
+        ctx2d.closePath()
+
+    drawRay: (player, slice) ->
+        ctx2d = @minimap.getContext "2d"
+        ctx2d.stroleStyle = "rgb(0,0,0)"
+        ctx2d.beginPath()
+        ctx2d.moveTo player.x * @scale, player.y * @scale
+        ctx2d.lineTo slice.x * @scale, slice.y * @scale
         ctx2d.stroke()
         ctx2d.closePath()
 
