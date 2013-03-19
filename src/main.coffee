@@ -29,6 +29,10 @@ class Player
             when 39 then @dir   =  1 * active
 
 class RayCastingRenderer #extends Renderer
+    @TWO_PI = Math.PI * 2
+    @TWO_PI_34 = @TWO_PI * 0.75
+    @TWO_PI_14 = @TWO_PI * 0.25
+
     constructor: (@screen, @w, @h) ->
         @screen.width = @w
         @screen.height = @h
@@ -36,59 +40,65 @@ class RayCastingRenderer #extends Renderer
         @screen.style.height = "#{@h}px"
 
         @gridSize = 64
-        @fovDeg = 60
+        @fovRad = @toRad 60
         @cameraHeight = 48
 
     render: (game) ->
         ctx2d = @screen.getContext "2d"
+
+        # clear screen
         ctx2d.fillStyle = "rgb(0,0,0)"
         ctx2d.fillRect 0, 0, @w, @h
-        step = @fovDeg / @w
-        start = (@toDeg game.player.rot) - @fovDeg / 2
+
+        step = @fovRad / @w
+        rayRad = game.player.rot - @fovRad / 2
+
+        distToProj = @cameraDistanceToProjection()
         for i in [0...@w]
-            slice = @closestIntersect game.map, game.player, start
-            projectedHeight = @gridSize / slice.dist * 255#@cameraDistanceToProjection()
+            slice = @closestIntersect game.map, game.player, rayRad
+            projectedHeight = @gridSize / slice.dist * distToProj
             top = (@h - projectedHeight) / 2
 
             c = 255 - Math.floor slice.dist / 1000 * 200
             if c < 20 then c = 20
             ctx2d.fillStyle = "rgb(#{c},#{c},#{c})"
             ctx2d.fillRect i, top, 1, projectedHeight
-            start += step
+            rayRad += step
 
-    closestIntersect: (map, player, rayDeg) ->
-        horz = @findHorzIntersect map, player, rayDeg
-        vert = @findVertIntersect map, player, rayDeg
+    closestIntersect: (map, player, rayRad) ->
+        rayRad %= RayCastingRenderer.TWO_PI
+        horz = @findHorzIntersect map, player, rayRad
+        vert = @findVertIntersect map, player, rayRad
         hDist = Math.sqrt (@square player.x - horz.x) + (@square player.y - horz.y)
         vDist = Math.sqrt (@square player.x - vert.x) + (@square player.y - vert.y)
         if hDist < vDist
             x: horz.x,
             y: horz.y,
-            dist: (Math.cos player.rot - @toRad rayDeg) * hDist,
-            ofs: x % @gridSize
+            dist: (Math.cos player.rot - rayRad) * hDist,
+            ofs: horz.x % @gridSize
         else
             x: vert.x,
             y: vert.y,
-            dist: (Math.cos player.rot - @toRad rayDeg) * vDist,
-            ofs: y % @gridSize
+            dist: (Math.cos player.rot - rayRad) * vDist,
+            ofs: vert.y % @gridSize
 
-    findHorzIntersect: (map, player, rayDeg) ->
-        up = @isRayFacingUp rayDeg
+    findHorzIntersect: (map, player, rayRad) ->
+        up = @isRayFacingUp rayRad
         y = (@toUnit player.y) + if up then -1 else @gridSize
-        x = (@toUnit player.x) + ((@toUnit player.y) - y) / Math.tan @toRad @fovDeg
+        x = (@toUnit player.x) + ((@toUnit player.y) - y) / Math.tan @fovRad
         yStep = if up then -@gridSize else @gridSize
-        xStep = @gridSize / Math.tan @toRad rayDeg
+        xStep = @gridSize / Math.tan rayRad
         while (map.getWall (@toMap x), (@toMap y)) == 0
             x += xStep
             y += yStep
         x: x, y: y
 
-    findVertIntersect: (map, player, rayDeg) ->
-        right = @isRayFacingRight rayDeg
+    findVertIntersect: (map, player, rayRad) ->
+        right = @isRayFacingRight rayRad
         x = (@toUnit player.x) + if right then @gridSize else -1
-        y = (@toUnit player.y) + ((@toUnit player.x) - x) / Math.tan @toRad @fovDeg
+        y = (@toUnit player.y) + ((@toUnit player.x) - x) / Math.tan @fovRad
         xStep = if right then @gridSize else -@gridSize
-        yStep = @gridSize * Math.tan @toRad rayDeg
+        yStep = @gridSize * Math.tan rayRad
         while (map.getWall (@toMap x), (@toMap y)) == 0
             x += xStep
             y += yStep
@@ -98,17 +108,13 @@ class RayCastingRenderer #extends Renderer
         n * n
 
     cameraDistanceToProjection: ->
-        @w / 2 / (Math.tan (@toRad @fovDeg / 2))
+        @w / 2 / (Math.tan @fovRad / 2)
 
-    isRayFacingUp: (rayDeg) ->
-        0 < rayDeg < 180
+    isRayFacingUp: (rayRad) ->
+        rayRad < 0 or Math.PI < rayRad
 
-    isRayFacingRight: (rayDeg) ->
-        90 < rayDeg < 270
-
-    toDeg: (rad) ->
-        deg = (rad * 180 / Math.PI) % 360
-        if deg < 0 then 360 - deg else deg
+    isRayFacingRight: (rayRad) ->
+        rayRad > RayCastingRenderer.TWO_PI_34 or rayRad < RayCastingRenderer.TWO_PI_14
 
     toRad: (deg) ->
         deg * Math.PI / 180
