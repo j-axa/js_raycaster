@@ -2,7 +2,7 @@ class Player
     @MOVE_SPEED = 0.1
     @ROT_SPEED = 3 * Math.PI / 180
 
-    constructor: ->
+    constructor: (@weapon) ->
         @x = 1.5
         @y = 1.5
         @dir = 0
@@ -29,6 +29,7 @@ class Player
             when 40 then @speed = -1 * active
             when 37 then @dir   = -1 * active
             when 39 then @dir   =  1 * active
+            when 17 then @weapon.fire()
 
 class RayCastingRenderer
     @TWO_PI = Math.PI * 2
@@ -46,7 +47,7 @@ class RayCastingRenderer
         @cameraHeight = 48
         @distanceToProjection = (@w / 2) / Math.tan @fovRad / 2
 
-    render: (game) ->
+    render: (game, time) ->
         ctx2d = @screen.getContext "2d"
 
         # clear screen
@@ -67,8 +68,7 @@ class RayCastingRenderer
 
             texture = @textures[slice.wall - 1]
             ctx2d.drawImage texture, slice.ofs, 0, 1, 64, i, top, 1, projectedHeight
-        gun = @textures[5]
-        ctx2d.drawImage gun, (@w - gun.width) / 2, @h - gun.height
+        game.player.weapon.draw ctx2d, time, @w, @h
         null
 
     closestIntersect: (map, player, rayRad) ->
@@ -140,6 +140,27 @@ class RayCastingRenderer
     toMap: (x) ->
         Math.floor x / @gridSize
 
+class Weapon
+    constructor: (@frames, @animRate, @scale) ->
+        @currentFrame = 0
+        @lastAnim = 0
+        @firing = false
+
+    fire: ->
+        @firing = true
+
+    draw: (ctx2d, time, w, h) ->
+        currentTexture = @frames[@currentFrame]
+        ctx2d.drawImage currentTexture, (w - currentTexture.width * @scale) / 2, h - currentTexture.height * @scale, currentTexture.width * @scale, currentTexture.height * @scale
+        if @firing and time - @lastAnim >= @animRate
+            if @currentFrame == @frames.length - 1
+                @firing = false
+                @currentFrame = 0
+                @lastAnim = 0
+            else
+                @lastAnim = time
+                ++@currentFrame
+
 
 class Game
     constructor: (@map, @renderer, @minimap, @player) ->
@@ -150,14 +171,14 @@ class Game
         document.onkeydown = document.onkeydown.bind this
         document.onkeyup = document.onkeyup.bind this
 
-    update: ->
+    update: (time) ->
         @player.move @map
         @minimap.draw @player
-        @renderer.render @
+        @renderer.render @, time
 
     run: ->
         window.requestAnimationFrame (time) =>
-            @update()
+            @update time
             @run()
 
 class Map
@@ -245,9 +266,21 @@ map = new Map [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ]
 
-wallTextures = ["brick.png", "brick_hole.png", "brick_missing.png", "brick_green.png", "sky.jpg", "gun.png"]
-imagecount = wallTextures.length
+
+wallTextures = ["brick.png", "brick_hole.png", "brick_missing.png", "brick_green.png", "sky.jpg"]
+imagecount = wallTextures.length + 11 # 11 frames for shotgun
 textures = []
+
+shotgunFrames = []
+for i in [0..10]
+    image = new Image()
+    image.onload = ->
+        --imagecount
+        if imagecount == 0
+            start()
+    image.src = "file://C:/Users/josaxa/SkyDrive/dev/js_raycaster/src/shotgun/#{i}.gif"
+    shotgunFrames.push image
+
 for texture in wallTextures
     image = new Image()
     image.onload = ->
@@ -258,8 +291,9 @@ for texture in wallTextures
     textures.push image
 
 start = ->
+    shotgun = new Weapon shotgunFrames, 50, 2
     renderer = new RayCastingRenderer (document.querySelector "#screen"), 640, 480, textures
     minimap = new MiniMap (document.querySelector "#minimap"), map, 8
-    player = new Player()
+    player = new Player shotgun
     game = new Game map, renderer, minimap, player
     game.run()
