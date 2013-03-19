@@ -3,8 +3,8 @@ class Player
     @ROT_SPEED = 3 * Math.PI / 180
 
     constructor: ->
-        @x = 1.0
-        @y = 1.0
+        @x = 1.5
+        @y = 1.5
         @dir = 0
         @speed = 0
         @rot = 0.0
@@ -30,7 +30,7 @@ class Player
             when 37 then @dir   = -1 * active
             when 39 then @dir   =  1 * active
 
-class RayCastingRenderer #extends Renderer
+class RayCastingRenderer
     @TWO_PI = Math.PI * 2
     @TWO_PI_34 = @TWO_PI * 0.75
     @TWO_PI_14 = @TWO_PI * 0.25
@@ -63,10 +63,12 @@ class RayCastingRenderer #extends Renderer
             projectedHeight = 1 / slice.dist * @distanceToProjection
             top = (@h - projectedHeight) / 2
 
-            c = 255 - Math.floor slice.dist  * 200
-            if c < 20 then c = 20
-            ctx2d.fillStyle = "rgb(#{c},#{c},#{c})"
-            ctx2d.fillRect i, top, 1, projectedHeight
+            #c = 255 - Math.floor slice.dist  * 200
+            #if c < 20 then c = 20
+            #ctx2d.fillStyle = "rgb(#{c},#{c},#{c})"
+            #ctx2d.fillRect i, top, 1, projectedHeight
+            ctx2d.drawImage image, slice.ofs, 0, 1, 64, i, top, 1, projectedHeight
+        null
 
     closestIntersect: (map, player, rayRad) ->
         rayRad %= RayCastingRenderer.TWO_PI
@@ -239,8 +241,12 @@ map = new Map [
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ]
-renderer = new RayCastingRenderer (document.querySelector "#screen"), 640, 480
-minimap = new MiniMap (document.querySelector "#minimap"), map, 8
-player = new Player()
-game = new Game map, renderer, minimap, player
-game.run()
+#wallTextures = ["/brick.jpg"]
+image = new Image()
+image.onload = ->
+    renderer = new RayCastingRenderer (document.querySelector "#screen"), 640, 480
+    minimap = new MiniMap (document.querySelector "#minimap"), map, 8
+    player = new Player()
+    game = new Game map, renderer, minimap, player
+    game.run()
+image.src = "file://C:/Users/josaxa/SkyDrive/dev/js_raycaster/src/brick.png"
