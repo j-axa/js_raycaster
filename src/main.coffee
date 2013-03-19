@@ -150,9 +150,10 @@ class Game
         @minimap.draw @player
         @renderer.render @
 
-
-    run: =>
-        window.setInterval (=> @update()), 1000 / 60
+    run: ->
+        window.requestAnimationFrame (time) =>
+            @update()
+            @run()
 
 class Map
     constructor: (@mapData) ->
