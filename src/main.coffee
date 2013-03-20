@@ -141,7 +141,7 @@ class RayCastingRenderer
         Math.floor x / @gridSize
 
 class Weapon
-    constructor: (@frames, @animRate, @scale) ->
+    constructor: (@frames, @animRate, @scale, @vOffset) ->
         @currentFrame = 0
         @lastAnim = 0
         @firing = false
@@ -151,7 +151,7 @@ class Weapon
 
     draw: (ctx2d, time, w, h) ->
         currentTexture = @frames[@currentFrame]
-        ctx2d.drawImage currentTexture, (w - currentTexture.width * @scale) / 2, h - currentTexture.height * @scale, currentTexture.width * @scale, currentTexture.height * @scale
+        ctx2d.drawImage currentTexture, (w - currentTexture.width * @scale) / 2 + @vOffset * @scale, h - currentTexture.height * @scale, currentTexture.width * @scale, currentTexture.height * @scale
         if @firing and time - @lastAnim >= @animRate
             if @currentFrame == @frames.length - 1
                 @firing = false
@@ -160,7 +160,6 @@ class Weapon
             else
                 @lastAnim = time
                 ++@currentFrame
-
 
 class Game
     constructor: (@map, @renderer, @minimap, @player) ->
@@ -291,7 +290,7 @@ for texture in wallTextures
     textures.push image
 
 start = ->
-    shotgun = new Weapon shotgunFrames, 50, 2
+    shotgun = new Weapon shotgunFrames, 40, 2, 49
     renderer = new RayCastingRenderer (document.querySelector "#screen"), 640, 480, textures
     minimap = new MiniMap (document.querySelector "#minimap"), map, 8
     player = new Player shotgun
