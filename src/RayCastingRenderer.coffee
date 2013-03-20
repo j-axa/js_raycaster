@@ -47,16 +47,22 @@ class RayCastingRenderer
         hDist = Math.sqrt (@square player.x - horz.x) + (@square player.y - horz.y)
         vDist = Math.sqrt (@square player.x - vert.x) + (@square player.y - vert.y)
         if hDist < vDist
+            ofs = (Math.floor horz.x * @gridSize) % @gridSize
+            unless horz.up
+                ofs = @gridSize - ofs - 1
             x: horz.x,
             y: horz.y,
             dist: (Math.cos player.rot - rayRad) * hDist,
-            ofs: (Math.floor horz.x * @gridSize) % @gridSize,
+            ofs: ofs,
             wall: horz.wall
         else
+            ofs = (Math.floor vert.y * @gridSize) % @gridSize
+            unless vert.right
+                ofs = @gridSize - ofs - 1
             x: vert.x,
             y: vert.y,
             dist: (Math.cos player.rot - rayRad) * vDist,
-            ofs: (Math.floor vert.y * @gridSize) % @gridSize,
+            ofs: ofs,
             wall: vert.wall
 
     findHorzIntersect: (map, player, rayRad) ->
@@ -73,7 +79,7 @@ class RayCastingRenderer
             if wall > 0 then break
             x += xStep
             y += yStep
-        x: x, y: y, wall: wall
+        x: x, y: y, wall: wall, up: up
 
     findVertIntersect: (map, player, rayRad) ->
         slope = (Math.sin rayRad) / (Math.cos rayRad)
@@ -89,7 +95,7 @@ class RayCastingRenderer
             if wall > 0 then break
             x += xStep
             y += yStep
-        x: x, y: y, wall: wall
+        x: x, y: y, wall: wall, right: right
 
     square: (n) ->
         n * n
