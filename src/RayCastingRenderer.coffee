@@ -42,17 +42,19 @@ class RayCastingRenderer
 
     closestIntersect: (map, player, rayRad) ->
         rayRad %= RayCastingRenderer.TWO_PI
-        horz = @findHorzIntersect map, player, rayRad
-        vert = @findVertIntersect map, player, rayRad
-        hDist = Math.sqrt (@square player.x - horz.x) + (@square player.y - horz.y)
-        vDist = Math.sqrt (@square player.x - vert.x) + (@square player.y - vert.y)
+        cosRay = Math.cos rayRad
+        sinRay = Math.sin rayRad
+        horz = @findHorzIntersect map, player, rayRad, cosRay, sinRay
+        vert = @findVertIntersect map, player, rayRad, cosRay, sinRay
+        hDist = (@square player.x - horz.x) + (@square player.y - horz.y)
+        vDist = (@square player.x - vert.x) + (@square player.y - vert.y)
         if hDist < vDist
             ofs = (Math.floor horz.x * @gridSize) % @gridSize
             unless horz.up
                 ofs = @gridSize - ofs - 1
             x: horz.x,
             y: horz.y,
-            dist: (Math.cos player.rot - rayRad) * hDist,
+            dist: (Math.cos player.rot - rayRad) * (Math.sqrt hDist),
             ofs: ofs,
             wall: horz.wall
         else
@@ -61,12 +63,12 @@ class RayCastingRenderer
                 ofs = @gridSize - ofs - 1
             x: vert.x,
             y: vert.y,
-            dist: (Math.cos player.rot - rayRad) * vDist,
+            dist: (Math.cos player.rot - rayRad) * (Math.sqrt vDist),
             ofs: ofs,
             wall: vert.wall
 
-    findHorzIntersect: (map, player, rayRad) ->
-        slope = (Math.cos rayRad) / (Math.sin rayRad)
+    findHorzIntersect: (map, player, rayRad, cosRay, sinRay) ->
+        slope = cosRay / sinRay
         up = @isRayFacingUp rayRad
         y = (if up then Math.floor else Math.ceil) player.y
         x = player.x + (y - player.y) * slope
@@ -81,8 +83,8 @@ class RayCastingRenderer
             y += yStep
         x: x, y: y, wall: wall, up: up
 
-    findVertIntersect: (map, player, rayRad) ->
-        slope = (Math.sin rayRad) / (Math.cos rayRad)
+    findVertIntersect: (map, player, rayRad, cosRay, sinRay) ->
+        slope = sinRay / cosRay
         right = @isRayFacingRight rayRad
         x = (if right then Math.ceil else Math.floor) player.x
         y = player.y + (x - player.x) * slope
