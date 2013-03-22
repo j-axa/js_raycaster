@@ -8,3 +8,4 @@ task 'build', 'builds the project', (options) ->
         console.log stdout + stderr
     exec "copy .\\src\\main.html .\\dist\\main.html /y"
     exec "xcopy .\\res .\\dist\\res /e /i /y"
+    exec "xcopy .\\lib .\\dist\\lib /e /i /y"

@@ -26,29 +26,18 @@ class GameInstance
             [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         ]
-        @textures = []
-        @shotgunFrames = []
 
-        wallTextures = ["brick.png", "brick_hole.png", "brick_missing.png", "brick_green.png", "sky.jpg", "crosshair.png"]
-        imagecount = wallTextures.length + 11 # 11 frames for shotgun
+        @textures = @loadTextures ["brick.png", "brick_hole.png", "brick_missing.png", "brick_green.png", "sky.jpg", "crosshair.png"], =>
+            @shotgunFrames = @loadTextures (_.map [0..10], (i) -> "shotgun/#{i}.gif"), =>
+                @startGame()
 
-        for i in [0..10]
+    loadTextures: (textures, callback) ->
+        count = textures.length
+        for texture in textures
             image = new Image()
-            image.onload = =>
-                --imagecount
-                if imagecount == 0
-                    @startGame()
-            image.src = "res/shotgun/#{i}.gif"
-            @shotgunFrames.push image
-
-        for texture in wallTextures
-            image = new Image()
-            image.onload = =>
-                --imagecount
-                if imagecount == 0
-                    @startGame()
+            image.onload = => if --count == 0 then callback()
             image.src = "res/#{texture}"
-            @textures.push image
+            image
 
     startGame: ->
         shotgun = new Weapon @shotgunFrames, 40, 2, 49
