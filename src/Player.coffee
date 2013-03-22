@@ -16,12 +16,16 @@ class Player
             @rot = Math.PI * 2 - @rot
         newX = @x + (Math.cos @rot) * step
         newY = @y + (Math.sin @rot) * step
-        unless @isBlocked map, newX, newY
+        unless @isBlockedX map, newX, @y
             @x = newX
+        unless @isBlockedY map, @x, newY
             @y = newY
 
-    isBlocked: (map, x, y) ->
-        return @w > x > 0 or @h > y > 0 or (map.getWall (Math.floor x), (Math.floor y)) > 0
+    isBlockedX: (map, x, y) ->
+        return @w > x > 0 or (map.getWall (Math.floor x), (Math.floor y)) > 0
+
+    isBlockedY: (map, x, y) ->
+        return @h > y > 0 or (map.getWall (Math.floor x), (Math.floor y)) > 0
 
     parseInput: (key, active = 1) ->
         switch key
