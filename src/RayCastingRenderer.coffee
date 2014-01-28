@@ -13,6 +13,12 @@ class RayCastingRenderer
         @fovRad = @toRad 60
         @cameraHeight = 48
         @distanceToProjection = (@w / 2) / Math.tan @fovRad / 2
+        @textureData = _.map @textures, (texture) ->
+            tmpCanvas = document.createElement "canvas"
+            tmpCtx = tmpCanvas.getContext "2d"
+            tmpCtx.drawImage texture, 0, 0
+            tmpCtx
+            #tmpCtx.getImageData 0, 0, texture.width, texture.height
 
     render: (game, time) ->
         ctx2d = @screen.getContext "2d"
@@ -33,8 +39,12 @@ class RayCastingRenderer
             projectedHeight = 1 / slice.dist * @distanceToProjection
             top = (@h - projectedHeight) / 2
 
-            texture = @textures[slice.wall - 1]
-            ctx2d.drawImage texture, slice.ofs, 0, 1, 64, i, top, 1, projectedHeight
+            texture = @textureData[slice.wall - 1]
+            data = ctx2d.getImageData i, top, 1, projectedHeight
+            tData = texture.getImageData slice.ofs, 0, 1, 64
+            @scaleNearest tData, 1, 64, data, 1, projectedHeight
+            ctx2d.putImageData data, i, top
+            #ctx2d.drawImage texture, slice.ofs, 0, 1, 64, i, top, 1, projectedHeight
         crosshair = @textures[5]
         ctx2d.drawImage crosshair, (@w - crosshair.width) / 2, (@h - crosshair.height) / 2
         game.player.weapon.draw ctx2d, time, @w, @h
@@ -116,3 +126,18 @@ class RayCastingRenderer
 
     toMap: (x) ->
         Math.floor x / @gridSize
+
+    scaleNearest: (srcData, srcWidth, srcHeight, destData, destWidth, destHeight) ->
+        ratioX = srcWidth / destWidth
+        ratioY = srcHeight / destHeight
+        for destY in [0...destHeight]
+            for destX in [0...destWidth]
+                srcX = Math.floor ratioX * destX
+                srcY = Math.floor ratioY * destY
+                iDest = 4 * destY * destWidth + 4 * destX
+                iSrc = 4 * srcY * srcWidth + 4 * srcX
+                destData[iDest    ] = srcData[iSrc    ]
+                destData[iDest + 1] = srcData[iSrc + 1]
+                destData[iDest + 2] = srcData[iSrc + 2]
+                destData[iDest + 3] = srcData[iSrc + 3]
+        null
