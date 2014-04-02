@@ -41,7 +41,7 @@
     function copyFiles(fromDir, fileList, toDir) {
         for(var file = 0; file < fileList.length; ++file) {
             var fileName = fileList[file];
-            var srcPath = 
+            var srcPath = fromDir + fileName;
             if (_fs.lstatSync(srcPath).isFile()) {
                 console.log("copying " + fileName + " from " + fromDir + " to " + toDir);
                 copy(srcPath, toDir + fileName);
@@ -61,10 +61,12 @@
 
     // deletes 'dir' and all subdirectories and files
     function clean(dir) {
-        var objects = _fs.readdirSync(dir);
-        delete_fs_objects(dir, objects);
-        console.log("removing directory " + dir)
-        _fs.rmdirSync(dir);
+        if (_fs.existsSync(dir)) {
+            var objects = _fs.readdirSync(dir);
+            delete_fs_objects(dir, objects);
+            console.log("removing directory " + dir)
+            _fs.rmdirSync(dir);
+        }
     }
 
     function delete_fs_objects(dir, objects) {
