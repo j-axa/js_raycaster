@@ -39,12 +39,13 @@ class RayCastingRenderer
             projectedHeight = 1 / slice.dist * @distanceToProjection
             top = (@h - projectedHeight) / 2
 
-            texture = @textureData[slice.wall - 1]
-            data = ctx2d.getImageData i, top, 1, projectedHeight
-            tData = texture.getImageData slice.ofs, 0, 1, 64
-            @scaleNearest tData, 1, 64, data, 1, projectedHeight
-            ctx2d.putImageData data, i, top
-            #ctx2d.drawImage texture, slice.ofs, 0, 1, 64, i, top, 1, projectedHeight
+            #texture = @textureData[slice.wall - 1]
+            #data = ctx2d.getImageData i, top, 1, projectedHeight
+            #tData = texture.getImageData slice.ofs, 0, 1, 64
+            #@scaleNearest tData, 1, 64, data, 1, projectedHeight
+            #ctx2d.putImageData tData, i, top
+            texture = @textures[slice.wall - 1]
+            ctx2d.drawImage texture, slice.ofs, 0, 1, 64, i, top, 1, projectedHeight
         crosshair = @textures[5]
         ctx2d.drawImage crosshair, (@w - crosshair.width) / 2, (@h - crosshair.height) / 2
         game.player.weapon.draw ctx2d, time, @w, @h
